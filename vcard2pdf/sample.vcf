@@ -1,0 +1,58 @@
+BEGIN:VCARD
+VERSION:3.0
+N:サンプル;三郎;;;
+FN:サンプル 三郎
+NICKNAME:sample3
+X-PHONETIC-FIRST-NAME:さぶろう
+X-PHONETIC-LAST-NAME:さんぷる
+ORG:株式会社 さんぷる;
+item1.ADR;type=WORK;type=pref:;;昭和区御器所町XXX-ZZZ;名古屋市;愛知県;466-000X;
+item1.X-ABADR:jp
+item2.X-ABRELATEDNAMES;type=pref:奥
+item2.X-ABLabel:連名
+item3.X-ABRELATEDNAMES:お子
+item3.X-ABLabel:連名
+item4.X-ABRELATEDNAMES:1
+item4.X-ABLabel:肩書付加？
+CATEGORIES:_サンプル
+X-ABUID:EE180729-6EC4-4CFD-9B55-CFC83A7155D0\:ABPerson
+END:VCARD
+BEGIN:VCARD
+VERSION:3.0
+N:サンプル;次郎;;;
+FN:サンプル 次郎
+NICKNAME:sample2
+X-PHONETIC-FIRST-NAME:じろう
+X-PHONETIC-LAST-NAME:さんぷる
+ORG:株式会社 さんぷる;
+item1.ADR;type=WORK;type=pref:;;昭和区御器所町XXX-YY2\nあのマンション 404;名古屋市;愛知県;466-000X;
+item1.X-ABADR:jp
+item2.X-ABRELATEDNAMES;type=pref:1
+item2.X-ABLabel:肩書付加？
+CATEGORIES:_サンプル
+X-ABUID:60CD7569-1BD8-4244-B8AA-81A7215E86E9\:ABPerson
+END:VCARD
+BEGIN:VCARD
+VERSION:3.0
+N:サンプル;太郎;;;
+FN:サンプル 太郎
+NICKNAME:sample1
+X-PHONETIC-FIRST-NAME:たろう
+X-PHONETIC-LAST-NAME:さんぷる
+ORG:株式会社 さんぷる;
+item1.ADR;type=HOME;type=pref:;;昭和区御器所町XXX-YY1;名古屋市;愛知県;466-000X;
+item1.X-ABADR:jp
+CATEGORIES:_サンプル
+X-ABUID:FAD297E8-F56E-44E7-9CF8-9104C1E7D8D4\:ABPerson
+END:VCARD
+BEGIN:VCARD
+VERSION:3.0
+N:;;;;
+FN:株式会社 さんぷる
+ORG:株式会社 さんぷる;
+item1.ADR;type=WORK;type=pref:;;昭和区御器所町AAA\nあそこの茶色のビル 5F;名古屋市;愛知県;466-000X;
+item1.X-ABADR:jp
+X-ABShowAs:COMPANY
+CATEGORIES:_サンプル
+X-ABUID:423F5851-D411-42DD-97AA-F6EE4A98C8DE\:ABPerson
+END:VCARD

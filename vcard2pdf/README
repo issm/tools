@@ -1,0 +1,4 @@
+Usage:
+
+perl vcard2pdf.pl <vcf> <pdf>
+

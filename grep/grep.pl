@@ -1,5 +1,7 @@
 #!/usr/bin/env perl
 
+# -*- coding: utf-8-unix; -*-
+
 #
 # grep.pl -{re1} -{re2} ... {file1} {file2} ...
 # find ... | grep.pl -{re1} -{re2} ...
@@ -30,12 +32,12 @@
 #
 # available like '1;2;31': bold and underline and red-fg.
 #
+
 use strict;
 use warnings;
 use utf8;
 use Encode;
 use Data::Dumper;
-
 
 my $DEBUG = 1;
 my $GREP_COMMON = '/usr/bin/grep --color=never';
@@ -43,7 +45,6 @@ my $GREP_COMMON = '/usr/bin/grep --color=never';
 my @COLOR_MATCHED    = map "1;2;4;" . $_, qw/31 32 34 35 36 37 38/;
 my $COLOR_FILENAME   = '1;4;37';
 my $COLOR_LINENUMBER = '1;33';
-
 
 sub _de {
     return decode('utf-8', $_);
@@ -56,12 +57,10 @@ sub _max {
 sub _uniq {
     my $list = \@_;
     my $_h = {};
-    return grep !$_h->{$_}++, @$list;
-    #return grep $_h->{$_}++ ? 0 : 1, @$list;
+    return grep {!$_h->{$_}++} @$list;
 }
 
-
-sub _re_4_shell {
+sub _perlre2grepre {
     my $re = {
         enslash => qr/[{}]/,
         d       => qr/\\d/,
@@ -89,21 +88,23 @@ sub _re_4_shell {
     } @_;
 }
 
-
-
 sub main {
     my @args = @_;
     my $re_re = qr/^-(.+)/;
 
     # 正規表現
-    my @re = map { (/$re_re/)[0]; } grep $_ =~ $re_re, @args;
-    # 対象ファイル
-    my @target = grep $_ !~ $re_re, @args;
-    unless (@target) {
-        # 引数として対象ファイルがない場合，標準入力からの入力を試みる
-        @target = map { chomp; $_; } <STDIN>;
+    my @re = map {(m/$re_re/)[0]} grep {$_ =~ $re_re} @args;
+    unless (@re > 0) {
+        print("Usage: $0 [-regexp] [filename]\n");
+        return 0;
     }
 
+    # 対象ファイル
+    my @target = grep {$_ !~ m/$re_re/} @args;
+    unless (@target > 0) {
+        # 引数として対象ファイルがない場合，標準入力からの入力を試みる
+        chomp(@target = <STDIN>);
+    }
 
     # grepコマンド
     my $_i = 0;
@@ -112,10 +113,10 @@ sub main {
             ? "$GREP_COMMON -E   '$_'"          # $_i > 0
             : "$GREP_COMMON -HnE '$_' @target"  # $_i == 0
         ;
-    } _re_4_shell @re;
+    } _perlre2grepre(@re);
 
 
-    @re = map qr/$_/, @re;
+    @re = map {qr/$_/} @re;
     my $cmd = join '|', @grep;
 
     if ($DEBUG) {
@@ -123,12 +124,12 @@ sub main {
         print $cmd, "\n";
     }
 
-    my $re_line = qr/^([^:]+):(\d+):(.*)$/;
+    my $re_line = qr/^([^:]+):(\d+):(.*)/;
     my @result = grep {
         # 頭の「{ファイル名}:{行番号}:」にマッチしてしまっていないか
         my $line = ($_ =~ $re_line)[2];
-        my @_m = grep $line =~ /$_/, @re;
-        $#_m == $#re ? 1 : 0;
+        my @_m = grep {$line =~ m/$_/} @re;
+        @_m == @re;
     } `$cmd`;
 
     if ($DEBUG) {
@@ -136,17 +137,17 @@ sub main {
     }
 
     # 結果がなければここで終了
-    return  unless defined $result[0];
+    return unless (@result > 0);
 
     # 対象ファイル名の最大文字数
-    @target = _uniq map { (/$re_line/)[0]; } @result;
-    my $max_name_length = _max map length $_, @target;
+    @target = _uniq(map {(m/$re_line/)[0]} @result);
+    my $max_name_length = _max(map {length $_} @target);
 
     # 対象ファイルにおける最大行数
-    my $max_lines = _max map {
-        my ($lines) = `wc -l $_` =~ /(\d+)/;
+    my $max_lines = _max(map {
+        my ($lines) = `wc -l $_` =~ m/(\d+)/;
         int $lines;
-    } @target;
+    } @target);
 
     # 出力フォーマット
     (my $fmt_line = sprintf(
@@ -160,7 +161,7 @@ sub main {
         my ($file, $num, $line) = ($l =~ $re_line);
 
         # ファイル名の出力
-        if ($file_prev ne $file) {
+        unless ($file_prev eq $file) {
             printf(
                 "\n[%sm${file}[m\n\n",
                 $COLOR_FILENAME,
@@ -169,9 +170,9 @@ sub main {
         $file_prev = $file;
 
         for (
-            my ($i, $cl, $_re) = (0, $COLOR_MATCHED[0]);
-            defined ($_re = $re[$i]);
-            $i++, $cl = $COLOR_MATCHED[$i]
+             my ($i, $cl, $_re) = (0, $COLOR_MATCHED[0]);
+             defined ($_re = $re[$i]);
+             $i++, $cl = $COLOR_MATCHED[$i]
         ) {
             # エスケープシーケンスの特性上，2つめ以降の正規表現が 「\d」「m」のときにバグる
             $line =~ s/($_re)/[${cl}m$1[m/g;
@@ -181,9 +182,9 @@ sub main {
         print $l, "\n";
     }
 
-    return;
+    return 0;
 }
 
-
-main(@ARGV);
+my $ret = main(@ARGV);
+exit $ret;
 __END__

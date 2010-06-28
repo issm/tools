@@ -38,8 +38,10 @@ use warnings;
 use utf8;
 use Encode;
 use Data::Dumper;
+use File::Basename qw();
+use Getopt::Long qw();
 
-my $DEBUG = 1;
+my $DEBUG = 0;
 my $GREP_COMMON = '/usr/bin/grep --color=never';
 
 my @COLOR_MATCHED    = map "1;2;4;" . $_, qw/31 32 34 35 36 37 38/;
@@ -61,27 +63,25 @@ sub _uniq {
 }
 
 sub _perlre2grepre {
-    my $re = {
-        enslash => qr/[{}]/,
-        d       => qr/\\d/,
-        D       => qr/\\D/,
-        w       => qr/\\w/,
-        W       => qr/\\W/,
-        s       => qr/\\s/,
-        S       => qr/\\S/,
+    my @re_table = (
+        [qr/\\d/ => '[0-9]'         ],
+        [qr/\\D/ => '[^0-9]/'       ],
+        [qr/\\w/ => '[0-9a-zA-Z_]'  ],
+        [qr/\\W/ => '[^0-9a-zA-Z_]' ],
+        [qr/\\s/ => '[ ]'           ],
+        [qr/\\S/ => '[^ ]'          ],
+    );
+    my $translate = sub {
+        my ($str) = @_;
+        map {$str =~ s/$_->[0]/$_->[1]/g} @re_table;
+        $str;
     };
 
     print "\n**** Regexp translation ****\n"  if $DEBUG;
 
     return map {
         my $_re_before = $_;
-        my $_re_after  = $_;
-        $_re_after =~ s/$re->{d}/[0-9]/g;
-        $_re_after =~ s/$re->{D}/[^0-9]/g;
-        $_re_after =~ s/$re->{w}/[0-9a-zA-Z_]/g;
-        $_re_after =~ s/$re->{W}/[^0-9a-zA-Z_]/g;
-        $_re_after =~ s/$re->{s}/[ ]/g;
-        $_re_after =~ s/$re->{S}/[^ ]/g;
+        my $_re_after = $translate->($_re_before);
 
         print "$_re_before => $_re_after\n"  if $DEBUG;
         $_re_after;
@@ -90,17 +90,30 @@ sub _perlre2grepre {
 
 sub main {
     my @args = @_;
-    my $re_re = qr/^-(.+)/;
+
+    my @re;
+    Getopt::Long::GetOptionsFromArray(\@args,
+        'debug!' => \$DEBUG,
+        'regexp=s' => \@re,
+    );
 
     # 正規表現
-    my @re = map {(m/$re_re/)[0]} grep {$_ =~ $re_re} @args;
     unless (@re > 0) {
-        print("Usage: $0 [-regexp] [filename]\n");
+        print(<<"        EOL");
+Usage: $0 [Options] [filename1 [filename2 [..]]]
+
+Options:
+  -regexp regexp:
+     正規表現を指定する．
+
+  -debug :
+     デバッグモードをオンにする．
+        EOL
         return 0;
     }
 
     # 対象ファイル
-    my @target = grep {$_ !~ m/$re_re/} @args;
+    my @target = @args;
     unless (@target > 0) {
         # 引数として対象ファイルがない場合，標準入力からの入力を試みる
         chomp(@target = <STDIN>);
@@ -137,7 +150,7 @@ sub main {
     }
 
     # 結果がなければここで終了
-    return unless (@result > 0);
+    return 0 unless (@result > 0);
 
     # 対象ファイル名の最大文字数
     @target = _uniq(map {(m/$re_line/)[0]} @result);
@@ -185,6 +198,9 @@ sub main {
     return 0;
 }
 
-my $ret = main(@ARGV);
-exit $ret;
+if (File::Basename::basename(__FILE__) eq File::Basename::basename($0)) {
+    my $ret = main(@ARGV);
+    exit $ret;
+}
+1;
 __END__

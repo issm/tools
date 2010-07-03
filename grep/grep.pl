@@ -42,11 +42,11 @@ use File::Basename qw();
 use Getopt::Long qw();
 
 my $DEBUG = 0;
-my $GREP_COMMON = '/usr/bin/grep --color=never';
+my $GREP_COMMON = 'grep --color=never';
 
 my @COLOR_MATCHED    = map "1;2;4;" . $_, qw/31 32 34 35 36 37 38/;
-my $COLOR_FILENAME   = '1;4;37';
-my $COLOR_LINENUMBER = '1;33';
+my $COLOR_FILENAME   = '1;4;37'; # ファイル名の色
+my $COLOR_LINENUMBER = '1;33'; # 行番号の色
 
 sub _de {
     return decode('utf-8', $_);
@@ -57,9 +57,8 @@ sub _max {
 }
 
 sub _uniq {
-    my $list = \@_;
     my $_h = {};
-    return grep {!$_h->{$_}++} @$list;
+    return grep {!$_h->{$_}++} @_;
 }
 
 sub _perlre2grepre {
@@ -113,14 +112,14 @@ Options:
     }
 
     # 対象ファイル
+    my $_i = 0;
     my @target = @args;
     unless (@target > 0) {
         # 引数として対象ファイルがない場合，標準入力からの入力を試みる
-        chomp(@target = <STDIN>);
+        @target = qw(-);
     }
 
     # grepコマンド
-    my $_i = 0;
     my @grep = map {
         $_i++
             ? "$GREP_COMMON -E   '$_'"          # $_i > 0
@@ -137,7 +136,7 @@ Options:
         print $cmd, "\n";
     }
 
-    my $re_line = qr/^([^:]+):(\d+):(.*)/;
+    my $re_line = qr/^([^:]+):(\d+):(.*)/; # ファイル名, 行番号, 行
     my @result = grep {
         # 頭の「{ファイル名}:{行番号}:」にマッチしてしまっていないか
         my $line = ($_ =~ $re_line)[2];
@@ -153,21 +152,14 @@ Options:
     return 0 unless (@result > 0);
 
     # 対象ファイル名の最大文字数
-    @target = _uniq(map {(m/$re_line/)[0]} @result);
-    my $max_name_length = _max(map {length $_} @target);
+    my $max_name_length = _max(map {length $_}
+                               _uniq(map {(m/$re_line/)[0]} @result));
 
     # 対象ファイルにおける最大行数
-    my $max_lines = _max(map {
-        my ($lines) = `wc -l $_` =~ m/(\d+)/;
-        int $lines;
-    } @target);
+    my $max_line_length = length(_max(map {(m/$re_line/)[1]} @result));
 
     # 出力フォーマット
-    (my $fmt_line = sprintf(
-        '[0;%sm %%%dd [m : %%s',
-        $COLOR_LINENUMBER,  # 行番号の色
-        length($max_lines), # 桁数
-    )) =~ s/ //g;
+    my $fmt_line = "\e[0;${COLOR_LINENUMBER}m%${max_line_length}d\e[m:%s";
 
     my $file_prev = '';
     for my $l (@result) {
@@ -175,10 +167,11 @@ Options:
 
         # ファイル名の出力
         unless ($file_prev eq $file) {
-            printf(
-                "\n[%sm${file}[m\n\n",
-                $COLOR_FILENAME,
-            );
+            if (@target > 1) {
+                print("\n",
+                      "\e[${COLOR_FILENAME}m${file}\e[m\n",
+                      "\n");
+            }
         }
         $file_prev = $file;
 
@@ -188,7 +181,7 @@ Options:
              $i++, $cl = $COLOR_MATCHED[$i]
         ) {
             # エスケープシーケンスの特性上，2つめ以降の正規表現が 「\d」「m」のときにバグる
-            $line =~ s/($_re)/[${cl}m$1[m/g;
+            $line =~ s/($_re)/\e[${cl}m$1\e[m/g;
         }
 
         $l = sprintf $fmt_line, $num, $line;

@@ -4,8 +4,11 @@ use strict;
 use warnings;
 
 use Test::More;
+use FindBin qw();
 
-require_ok './grep.pl';
+use lib qq($FindBin::RealBin);
+
+require_ok 'grep.pl';
 
 # max
 is(_max(1, 2, 3), 3, '_max()');

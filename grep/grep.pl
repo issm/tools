@@ -98,7 +98,7 @@ sub main {
 
     # 正規表現
     unless (@re > 0) {
-        print(<<"        EOL");
+        print(encode('utf-8', <<"        EOL"));
 Usage: $0 [Options] [filename1 [filename2 [..]]]
 
 Options:
@@ -196,4 +196,6 @@ if (File::Basename::basename(__FILE__) eq File::Basename::basename($0)) {
     exit $ret;
 }
 1;
+
+# vim: et sw=4 fenc=utf-8 ff=unix
 __END__
